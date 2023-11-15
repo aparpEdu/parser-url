@@ -2,7 +2,7 @@
 #include <cctype>
 
 enum TSymbolType {
-    protocol, domain, port, path, semicolon, period, quotas, othersy
+    protocol, domain, port, path, colon, period, quotas, othersy, semicolon
 };
 
 char Char;
@@ -90,6 +90,11 @@ void GetNextSymbol() {
             std::cout << "Path: " << Spelling << std::endl;
         } break;
         case ':' : {
+            Symbol = colon;
+            GetNextChar();
+            std::cout << "Column" << std::endl;
+        } break;
+        case ';' : {
             Symbol = semicolon;
             GetNextChar();
             std::cout << "Semicolon" << std::endl;
@@ -148,13 +153,13 @@ void Record() {
         accept(period);
         Field();
     }
-//    expect(semicolon);
+//    expect(colon);
 }
 
 void DataFile() {
     while (Symbol != othersy) {
         Record();
-        while (accept(semicolon)) {
+        while (accept(colon)) {
             std::cout << "Semicolon" << std::endl;
             while (Char == ';') {
                 GetNextChar();
