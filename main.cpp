@@ -1,5 +1,6 @@
 #include <iostream>
 #include <cctype>
+#include <fstream>
 
 enum TSymbolType {
     protocol, domain, port, path, colon, period, quotas, othersy, semicolon
@@ -10,12 +11,14 @@ TSymbolType Symbol;
 char Spelling[256];
 const int MAXLENGTH = 255;
 
-const char* Input = R"(https://www.example.com:8080/path/to/resource;https://otherwebsite.com/)";
-int inputIndex = 0;
+std::ifstream inputFile("input.txt");
 
 void GetNextChar() {
-    Char = Input[inputIndex];
-    inputIndex++;
+    if (!inputFile.is_open()) {
+        std::cerr << "Error opening the file!" << std::endl;
+        return;
+    }
+    Char = inputFile.get();
 }
 
 void error(const char* message) {
@@ -29,7 +32,7 @@ void GetNextSymbol() {
         GetNextChar();
     }
 
-    if (Char == '\0') {
+    if (Char == '\0' || inputFile.eof()) {
         Symbol = othersy;
         std::cout << "End of Input" << std::endl;
         return;
@@ -41,7 +44,7 @@ void GetNextSymbol() {
 
     switch (toupper(Char)) {
         case 'A' ... 'Z': {
-            while (isalpha(Char)) {
+            while (isalpha(Char) || isdigit(Char) || Char == '.') {
                 Spelling[k] = Char;
                 k++;
                 GetNextChar();
@@ -53,8 +56,14 @@ void GetNextSymbol() {
                 error("error: URL is too long");
             }
 
-            Symbol = protocol;
-            std::cout << "Protocol: " << Spelling << std::endl;
+            if (Spelling[k - 1] == '.') {
+                Symbol = domain;
+                std::cout << "Domain: " << Spelling << std::endl;
+            } else {
+                Symbol = protocol;
+                std::cout << "Protocol: " << Spelling << std::endl;
+            }
+
         } break;
         case '0' ... '9': {
             while (isdigit(Char)) {
@@ -72,16 +81,11 @@ void GetNextSymbol() {
             Symbol = port;
             std::cout << "Port: " << Spelling << std::endl;
         } break;
-        case '.' : {
-            Symbol = period;
-            GetNextChar();
-            std::cout << "Period" << std::endl;
-        } break;
         case '/' : {
             Symbol = path;
             GetNextChar();
             int insidePath = 0;
-            while (Char != '\0' && Char != ';' && Char != '\"') {
+            while (Char != '\0' && Char != ';' && Char != '\"' && Char != '\n') {
                 Spelling[insidePath] = Char;
                 insidePath++;
                 GetNextChar();
@@ -93,11 +97,30 @@ void GetNextSymbol() {
             Symbol = colon;
             GetNextChar();
             std::cout << "Column" << std::endl;
+
+            // Skip the colon and whitespace if present
+            while (Char == ':' || Char == ' ') {
+                GetNextChar();
+            }
+
+            // Move to the next valid part of the URL
+            while (Char != '\0' && Char != ';' && Char != '\"' && Char != '\n') {
+                Spelling[k] = Char;
+                k++;
+                GetNextChar();
+            }
+            Spelling[k] = '\0';
+            std::cout << "Path: " << Spelling << std::endl;
         } break;
         case ';' : {
             Symbol = semicolon;
             GetNextChar();
             std::cout << "Semicolon" << std::endl;
+
+            // Read until the end of the line or end of the file for the second URL's path
+            while (Char != '\n' && Char != EOF) {
+                GetNextChar();
+            }
         } break;
         case '\"' : {
             Symbol = quotas;
@@ -131,19 +154,14 @@ int accept(TSymbolType symbol) {
     return 0;
 }
 
-//int expect(TSymbolType symbol) {
-//    if (accept(symbol)) {
-//        return 1;
-//    }
-//    error("expect: unexpected symbol");
-//    return 0;
-//}
-
 void Field() {
-    if (accept(protocol) || accept(port) || accept(quotas) || accept(path) || accept(domain)) {
-        return;
-    } else if (Symbol != othersy) {
-        error("field: expects valid URL components");
+    while (!accept(protocol) && !accept(port) && !accept(path) && !accept(colon) && !accept(semicolon)) {
+        if (Symbol == othersy) {
+            error("field: unexpected symbol");
+            return;
+        } else {
+            GetNextSymbol();
+        }
     }
 }
 
@@ -153,20 +171,16 @@ void Record() {
         accept(period);
         Field();
     }
-//    expect(colon);
 }
 
 void DataFile() {
-    while (Symbol != othersy) {
+    Record();
+    while (Symbol != othersy && !inputFile.eof()) {
         Record();
-        while (accept(colon)) {
-            std::cout << "Semicolon" << std::endl;
-            while (Char == ';') {
-                GetNextChar();
-            }
-        }
     }
+    inputFile.close();
 }
+
 
 int main() {
     GetNextChar();
