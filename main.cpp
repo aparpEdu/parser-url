@@ -1,6 +1,7 @@
 #include <iostream>
 #include <cctype>
 #include <fstream>
+#include <string>
 
 enum TSymbolType {
     protocol, domain, port, path, colon, period, quotas, othersy, semicolon
@@ -8,8 +9,7 @@ enum TSymbolType {
 
 char Char;
 TSymbolType Symbol;
-char Spelling[256];
-const int MAXLENGTH = 255;
+std::string Spelling;
 
 std::ifstream inputFile("input.txt");
 
@@ -26,8 +26,6 @@ void error(const char* message) {
 }
 
 void GetNextSymbol() {
-    int k = 0;
-
     while (Char != '\0' && !isalpha(Char) && Char != ':' && Char != '.' && Char != '/' && Char != ';' && Char != '\"') {
         GetNextChar();
     }
@@ -44,38 +42,26 @@ void GetNextSymbol() {
 
     switch (toupper(Char)) {
         case 'A' ... 'Z': {
+            Spelling = "";
             while (isalpha(Char) || isdigit(Char) || Char == '.') {
-                Spelling[k] = Char;
-                k++;
+                Spelling.push_back(Char);
                 GetNextChar();
             }
 
-            Spelling[k] = '\0';
-
-            if (k > MAXLENGTH) {
-                error("error: URL is too long");
-            }
-
-            if (Spelling[k - 1] == '.') {
-                Symbol = domain;
-                std::cout << "Domain: " << Spelling << std::endl;
-            } else {
+            if (Spelling == "http" || Spelling == "https") {
                 Symbol = protocol;
                 std::cout << "Protocol: " << Spelling << std::endl;
+            } else {
+                Symbol = domain;
+                std::cout << "Domain: " << Spelling << std::endl;
             }
 
         } break;
         case '0' ... '9': {
+            Spelling = "";
             while (isdigit(Char)) {
-                Spelling[k] = Char;
-                k++;
+                Spelling.push_back(Char);
                 GetNextChar();
-            }
-
-            Spelling[k] = '\0';
-
-            if (k > MAXLENGTH) {
-                error("error: Port is too long");
             }
 
             Symbol = port;
@@ -83,58 +69,42 @@ void GetNextSymbol() {
         } break;
         case '/' : {
             Symbol = path;
-            GetNextChar();
-            int insidePath = 0;
-            while (Char != '\0' && Char != ';' && Char != '\"' && Char != '\n') {
-                Spelling[insidePath] = Char;
-                insidePath++;
+            Spelling = "";
+            while (Char != ';' && Char != '\"' && Char != '\n' && Char != EOF) {
+                Spelling.push_back(Char);
                 GetNextChar();
             }
-            Spelling[insidePath] = '\0';
             std::cout << "Path: " << Spelling << std::endl;
         } break;
         case ':' : {
             Symbol = colon;
-            GetNextChar();
             std::cout << "Column" << std::endl;
 
-            // Skip the colon and whitespace if present
             while (Char == ':' || Char == ' ') {
                 GetNextChar();
             }
 
-            // Move to the next valid part of the URL
+            Spelling = "";
             while (Char != '\0' && Char != ';' && Char != '\"' && Char != '\n') {
-                Spelling[k] = Char;
-                k++;
+                Spelling.push_back(Char);
                 GetNextChar();
             }
-            Spelling[k] = '\0';
             std::cout << "Path: " << Spelling << std::endl;
         } break;
         case ';' : {
             Symbol = semicolon;
-            GetNextChar();
             std::cout << "Semicolon" << std::endl;
 
-            // Read until the end of the line or end of the file for the second URL's path
             while (Char != '\n' && Char != EOF) {
                 GetNextChar();
             }
         } break;
         case '\"' : {
             Symbol = quotas;
-            GetNextChar();
-            int insideQuote = 0;
-            while (Char != '\"') {
-                Spelling[insideQuote] = Char;
-                insideQuote++;
+            Spelling = "";
+            while (Char != '\"' && Char != '\n' && Char != EOF) {
+                Spelling.push_back(Char);
                 GetNextChar();
-            }
-            if (Char == '\"') {
-                GetNextChar();
-            } else {
-                error("error: URL is too long or missing closing double quote");
             }
             std::cout << "String: " << Spelling << std::endl;
         } break;
@@ -180,7 +150,6 @@ void DataFile() {
     }
     inputFile.close();
 }
-
 
 int main() {
     GetNextChar();
