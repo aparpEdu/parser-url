@@ -11,7 +11,7 @@ char Char;
 TSymbolType Symbol;
 std::string Spelling;
 
-std::ifstream inputFile("input.txt");
+std::ifstream inputFile("/Users/moldovexc/CLionProjects/parserurl/input.txt");
 
 void GetNextChar() {
     if (!inputFile.is_open()) {
