@@ -4,7 +4,7 @@
 #include <string>
 
 enum TSymbolType {
-    protocol, domain, port, path, colon, period, quotas, othersy, semicolon
+    protocol, domain, port, path, colon, period, quotas, othersy, semicolon, machine
 };
 
 char Char;
@@ -41,6 +41,7 @@ void GetNextSymbol() {
     }
 
     switch (toupper(Char)) {
+        // Inside the switch statement where the domain is identified
         case 'A' ... 'Z': {
             Spelling = "";
             while (isalpha(Char) || isdigit(Char) || Char == '.') {
@@ -53,10 +54,20 @@ void GetNextSymbol() {
                 std::cout << "Protocol: " << Spelling << std::endl;
             } else {
                 Symbol = domain;
-                std::cout << "Domain: " << Spelling << std::endl;
-            }
+                std::string domainStr = Spelling;
 
+                // Check if the domain starts with "www."
+                if (domainStr.substr(0, 4) == "www.") {
+                    domainStr = domainStr.substr(4); // Remove "www."
+                }
+
+                // Extract and output the domain
+                std::cout << "Domain: " << domainStr << std::endl;
+            }
         } break;
+
+
+
         case '0' ... '9': {
             Spelling = "";
             while (isdigit(Char)) {
@@ -74,23 +85,76 @@ void GetNextSymbol() {
                 Spelling.push_back(Char);
                 GetNextChar();
             }
-            std::cout << "Path: " << Spelling << std::endl;
+            std::string pathStr = Spelling;
+
+            // Check if "www." exists in the path and remove it
+            size_t wwwPos = pathStr.find("www.");
+            if (wwwPos != std::string::npos) {
+                pathStr.erase(wwwPos, 4); // Remove "www."
+            }
+
+//            std::cout << "Path: " << pathStr << std::endl;
+            std::cout<<pathStr<<std::endl;
         } break;
+
+        case 'w' : {
+            Spelling.push_back(Char);
+            GetNextChar();
+            if(Char == 'w') {
+                GetNextChar();
+                Spelling.push_back(Char);
+                if(Char == 'w') {
+                    Symbol = machine;
+                    GetNextChar();
+                    Spelling.push_back(Char);
+                    std::cout << "Machine: " << Spelling << std::endl;
+                }
+            }
+        }
         case ':' : {
             Symbol = colon;
-            std::cout << "Column" << std::endl;
+            std::cout << "Colon" << std::endl;
 
             while (Char == ':' || Char == ' ') {
                 GetNextChar();
             }
 
-            Spelling = "";
-            while (Char != '\0' && Char != ';' && Char != '\"' && Char != '\n') {
-                Spelling.push_back(Char);
+            if (Char == '/') {
                 GetNextChar();
+                Symbol = path;
+                Spelling = "";
+
+                std::string removedPart = ""; // Variable to store the removed part
+
+                while (Char != ';' && Char != '\"' && Char != '\n' && Char != EOF) {
+                    Spelling.push_back(Char);
+                    GetNextChar();
+                }
+
+                size_t wwwPos = Spelling.find("www.");
+                if (wwwPos != std::string::npos) {
+                    removedPart = "www"; // Store the removed part
+                    Spelling.erase(wwwPos, 4);
+                    Symbol = machine; // Update the symbol to represent the removal of "www"
+                }
+
+                size_t www1Pos = Spelling.find("www1.");
+                if (www1Pos != std::string::npos) {
+                    removedPart = "www1"; // Store the removed part
+                    Spelling.erase(www1Pos, 5);
+                    Symbol = machine; // Update the symbol to represent the removal of "www1"
+                }
+
+                std::cout << "Path: " << Spelling << std::endl;
+
+                if (!removedPart.empty()) {
+                    std::cout << "Machine: " << removedPart << std::endl; // Print the removed part
+                }
             }
-            std::cout << "Path: " << Spelling << std::endl;
         } break;
+
+
+
         case ';' : {
             Symbol = semicolon;
             std::cout << "Semicolon" << std::endl;
