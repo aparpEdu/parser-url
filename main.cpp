@@ -15,9 +15,7 @@ struct URLComponents {
     std::string path;
 };
 
-bool isValidURL(const std::string& urlString) {
-    return urlString.find("://") != std::string::npos;
-}
+
 
 void parseURL(const std::string& urlString) {
     URLComponents components;
