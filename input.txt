@@ -1,3 +1,4 @@
 https://www1.tu-varna.bg/tu-varna/
 ftp://user:password@ftp.example.com/files/file.txt
 https://subdomain.domain.com:8080/page
+ftp:user:password@ftp.example.com/files/file.txt

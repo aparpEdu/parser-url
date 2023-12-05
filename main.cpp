@@ -1,7 +1,10 @@
 #include <iostream>
 #include <fstream>
-#include <sstream>
 #include <string>
+
+void printError(const std::string& errorMessage, size_t errorPos) {
+    std::cout << "\033[1;31mError: " << errorMessage << " at position " << errorPos << "\033[0m" << std::endl;
+}
 
 struct URLComponents {
     std::string scheme;
@@ -12,34 +15,42 @@ struct URLComponents {
     std::string path;
 };
 
+bool isValidURL(const std::string& urlString) {
+    return urlString.find("://") != std::string::npos;
+}
+
 void parseURL(const std::string& urlString) {
     URLComponents components;
 
     size_t schemePos = urlString.find("://");
-    if (schemePos != std::string::npos) {
-        components.scheme = urlString.substr(0, schemePos);
-        size_t hostStartPos = schemePos + 3;
+    if (schemePos == std::string::npos) {
+        printError("Invalid URL syntax: Expected '://' not found in " + urlString, urlString.length());
+        return;
+    }
 
-        size_t userEndPos = urlString.find(':', hostStartPos);
-        size_t hostEndPos = urlString.find('@', hostStartPos);
-        size_t portStartPos = urlString.find(':', hostStartPos);
-        size_t pathStartPos = urlString.find('/', schemePos + 3);
+    components.scheme = urlString.substr(0, schemePos);
+    size_t hostStartPos = schemePos + 3;
 
-        if (components.scheme != "http" && components.scheme != "https" && userEndPos != std::string::npos && (hostEndPos == std::string::npos || userEndPos < hostEndPos)) {
-            components.user = urlString.substr(hostStartPos, userEndPos - hostStartPos);
-            components.password = urlString.substr(userEndPos + 1, hostEndPos - userEndPos - 1);
-            components.host = urlString.substr(hostEndPos + 1, (portStartPos != std::string::npos ? portStartPos : pathStartPos) - hostEndPos - 1);
-        } else {
-            components.host = urlString.substr(hostStartPos, (portStartPos != std::string::npos ? portStartPos : pathStartPos) - hostStartPos);
-        }
+    size_t userEndPos = urlString.find(':', hostStartPos);
+    size_t hostEndPos = urlString.find('@', hostStartPos);
+    size_t portStartPos = urlString.find(':', hostStartPos);
+    size_t pathStartPos = urlString.find('/', schemePos + 3);
 
-        if (portStartPos != std::string::npos && portStartPos < pathStartPos) {
-            components.port = urlString.substr(portStartPos + 1, pathStartPos - portStartPos - 1);
-        }
+    if (components.scheme != "http" && components.scheme != "https" && userEndPos != std::string::npos &&
+        (hostEndPos == std::string::npos || userEndPos < hostEndPos)) {
+        components.user = urlString.substr(hostStartPos, userEndPos - hostStartPos);
+        components.password = urlString.substr(userEndPos + 1, hostEndPos - userEndPos - 1);
+        components.host = urlString.substr(hostEndPos + 1, (portStartPos != std::string::npos ? portStartPos : pathStartPos) - hostEndPos - 1);
+    } else {
+        components.host = urlString.substr(hostStartPos, (portStartPos != std::string::npos ? portStartPos : pathStartPos) - hostStartPos);
+    }
 
-        if (pathStartPos != std::string::npos) {
-            components.path = urlString.substr(pathStartPos);
-        }
+    if (portStartPos != std::string::npos && portStartPos < pathStartPos) {
+        components.port = urlString.substr(portStartPos + 1, pathStartPos - portStartPos - 1);
+    }
+
+    if (pathStartPos != std::string::npos) {
+        components.path = urlString.substr(pathStartPos);
     }
 
     std::cout << "Scheme: " << components.scheme << std::endl;
